@@ -2,11 +2,12 @@
 
 namespace Prettus\Repository\Traits;
 
+use Exception;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Http\Request;
 use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Helpers\CacheKeys;
 use ReflectionObject;
-use Exception;
 
 /**
  * Class CacheableRepository
@@ -15,6 +16,11 @@ use Exception;
 trait CacheableRepository
 {
 
+
+    /**
+     * @var bool
+     */
+    protected $cacheSkip = false;
     /**
      * @var CacheRepository
      */
@@ -68,7 +74,7 @@ trait CacheableRepository
     public function isSkippedCache()
     {
         $skipped = isset($this->cacheSkip) ? $this->cacheSkip : false;
-        $request = app('Illuminate\Http\Request');
+        $request = app(Request::class);
         $skipCacheParam = config('repository.cache.params.skipCache', 'skipCache');
 
         if ($request->has($skipCacheParam) && $request->get($skipCacheParam)) {
@@ -119,11 +125,13 @@ trait CacheableRepository
      */
     public function getCacheKey($method, $args = null)
     {
-
-        $request = app('Illuminate\Http\Request');
-        $args = serialize($args);
-        $criteria = $this->serializeCriteria();
-        $key = sprintf('%s@%s-%s', get_called_class(), $method, md5($args . $criteria . $request->fullUrl()));
+        /**
+         * @var $request Request
+         */
+        $request       = app(Request::class);
+        $args          = serialize($args);
+        $paramsRequest = serialize($request->query());
+        $key           = sprintf('%s@%s-%s', get_called_class(), $method, md5($args . $paramsRequest));
 
         CacheKeys::putKey(get_called_class(), $key);
 
@@ -326,4 +334,37 @@ trait CacheableRepository
 
         return $value;
     }
+
+    /**
+     * Used to manually cache a request. Useful when using methods of Eloquent and not the one of the Repository
+     * interface
+     *
+     * @param \Closure $closure         Closure containing the function to execute with the result to cache
+     * @param array    ...$functionArgs the argument of the closure
+     *
+     * @return mixed
+     */
+    private function cacheRequest(\Closure $closure, ...$functionArgs)
+    {
+        if ($this->isSkippedCache()) {
+            $this->applyCriteria();
+            $this->applyScope();
+
+            return call_user_func_array($closure, $functionArgs);
+        }
+
+        $key     = $this->getCacheKey(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'], $functionArgs);
+        $minutes = $this->getCacheMinutes();
+        $value   = $this->getCacheRepository()->remember($key, $minutes, function () use ($closure, $functionArgs) {
+            $this->applyCriteria();
+            $this->applyScope();
+
+            return call_user_func_array($closure, $functionArgs);
+        });
+
+        $this->resetModel();
+
+        return $value;
+    }
+
 }
