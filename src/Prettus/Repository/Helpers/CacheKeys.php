@@ -18,7 +18,7 @@ class CacheKeys
      */
     public static function putKey($group, $key)
     {
-        $repoKey = self::getKey($group);
+        $repoKey = self::getGroupKey($group);
 
         $keys   = self::getKeys($group);
         $keys[] = $key;
@@ -32,9 +32,13 @@ class CacheKeys
      */
     public static function getKeys($group): array
     {
-        $repoKey = self::getKey($group);
+        $repoKey = self::getGroupKey($group);
 
-        return unserialize(\Cache::get($repoKey, '{}'));
+        if (!$result = \Cache::get($repoKey)) {
+            return [];
+        }
+
+        return unserialize($result);
     }
 
     /**
@@ -44,7 +48,7 @@ class CacheKeys
      */
     public static function cleanKeys($group)
     {
-        $repoKey = self::getKey($group);
+        $repoKey = self::getGroupKey($group);
         foreach (self::getKeys($group) as $key) {
             \Cache::forget($key);
         }
@@ -72,9 +76,9 @@ class CacheKeys
      *
      * @return string
      */
-    private static function getKey($group): string
+    private static function getGroupKey($group): string
     {
-        return 'repository/' . $group;
+        return 'repository/keys/' . $group;
     }
 
     /**
