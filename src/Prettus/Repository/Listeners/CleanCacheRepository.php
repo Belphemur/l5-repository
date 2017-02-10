@@ -3,15 +3,13 @@
 namespace Prettus\Repository\Listeners;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
-use Prettus\Repository\Contracts\RepositoryInterface;
 use Prettus\Repository\Events\RepositoryEventBase;
 use Prettus\Repository\Helpers\CacheKeys;
 
 /**
  * Class CleanCacheRepository
+ *
  * @package Prettus\Repository\Listeners
  */
 class CleanCacheRepository
@@ -22,20 +20,6 @@ class CleanCacheRepository
      */
     protected $cache = null;
 
-    /**
-     * @var RepositoryInterface
-     */
-    protected $repository = null;
-
-    /**
-     * @var Model
-     */
-    protected $model = null;
-
-    /**
-     * @var string
-     */
-    protected $action = null;
 
     /**
      *
@@ -54,18 +38,11 @@ class CleanCacheRepository
             $cleanEnabled = config("repository.cache.clean.enabled", true);
 
             if ($cleanEnabled) {
-                $this->repository = $event->getRepository();
-                $this->model = $event->getModel();
-                $this->action = $event->getAction();
+                $repository = $event->getRepository();
+                $action     = $event->getAction();
 
-                if (config("repository.cache.clean.on.{$this->action}", true)) {
-                    $cacheKeys = CacheKeys::getKeys(get_class($this->repository));
-
-                    if (is_array($cacheKeys)) {
-                        foreach ($cacheKeys as $key) {
-                            $this->cache->forget($key);
-                        }
-                    }
+                if (config("repository.cache.clean.on.{$action}", true)) {
+                    CacheKeys::cleanKeys(get_class($repository));
                 }
             }
         } catch (\Exception $e) {

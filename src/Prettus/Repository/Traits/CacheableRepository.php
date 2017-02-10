@@ -2,15 +2,13 @@
 
 namespace Prettus\Repository\Traits;
 
-use Exception;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
-use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Helpers\CacheKeys;
-use ReflectionObject;
 
 /**
  * Class CacheableRepository
+ *
  * @package Prettus\Repository\Traits
  */
 trait CacheableRepository
@@ -73,8 +71,8 @@ trait CacheableRepository
      */
     public function isSkippedCache()
     {
-        $skipped = isset($this->cacheSkip) ? $this->cacheSkip : false;
-        $request = app(Request::class);
+        $skipped        = isset($this->cacheSkip) ? $this->cacheSkip : false;
+        $request        = app(Request::class);
         $skipCacheParam = config('repository.cache.params.skipCache', 'skipCache');
 
         if ($request->has($skipCacheParam) && $request->get($skipCacheParam)) {
@@ -97,8 +95,13 @@ trait CacheableRepository
             return false;
         }
 
-        $cacheOnly = isset($this->cacheOnly) ? $this->cacheOnly : config('repository.cache.allowed.only', null);
+        $cacheOnly   = isset($this->cacheOnly) ? $this->cacheOnly  : config('repository.cache.allowed.only', null);
         $cacheExcept = isset($this->cacheExcept) ? $this->cacheExcept : config('repository.cache.allowed.except', null);
+
+
+        if (is_null($cacheOnly) && is_null($cacheExcept)) {
+            return true;
+        }
 
         if (is_array($cacheOnly)) {
             return in_array($method, $cacheOnly);
@@ -108,9 +111,6 @@ trait CacheableRepository
             return !in_array($method, $cacheExcept);
         }
 
-        if (is_null($cacheOnly) && is_null($cacheExcept)) {
-            return true;
-        }
 
         return false;
     }
@@ -131,58 +131,10 @@ trait CacheableRepository
         $request       = app(Request::class);
         $args          = serialize($args);
         $paramsRequest = serialize($request->query());
-        $key           = sprintf('%s@%s-%s', get_called_class(), $method, md5($args . $paramsRequest));
-
-        CacheKeys::putKey(get_called_class(), $key);
+        $key           = sprintf('%s@%s[%s]', get_called_class(), $method, md5($args . $paramsRequest));
 
         return $key;
 
-    }
-
-    /**
-     * Serialize the criteria making sure the Closures are taken care of.
-     *
-     * @return string
-     */
-    protected function serializeCriteria()
-    {
-        try {
-            return serialize($this->getCriteria());
-        } catch (Exception $e) {
-            return serialize($this->getCriteria()->map(function ($criterion) {
-                return $this->serializeCriterion($criterion);
-            }));
-        }
-    }
-
-    /**
-     * Serialize single criterion with customized serialization of Closures.
-     *
-     * @param  \Prettus\Repository\Contracts\CriteriaInterface $criterion
-     * @return \Prettus\Repository\Contracts\CriteriaInterface|array
-     *
-     * @throws \Exception
-     */
-    protected function serializeCriterion($criterion)
-    {
-        try {
-            serialize($criterion);
-
-            return $criterion;
-        } catch (Exception $e) {
-            // We want to take care of the closure serialization errors,
-            // other than that we will simply re-throw the exception.
-            if ($e->getMessage() !== "Serialization of 'Closure' is not allowed") {
-                throw $e;
-            }
-
-            $r = new ReflectionObject($criterion);
-
-            return [
-                'hash' => md5((string) $r),
-                'properties' => $r->getProperties(),
-            ];
-        }
     }
 
     /**
@@ -192,7 +144,9 @@ trait CacheableRepository
      */
     public function getCacheMinutes()
     {
-        $cacheMinutes = isset($this->cacheMinutes) ? $this->cacheMinutes : config('repository.cache.minutes', 30);
+        $cacheMinutes = isset($this->cacheMinutes)
+            ? $this->cacheMinutes
+            : config('repository.cache.minutes', 30);
 
         return $cacheMinutes;
     }
@@ -206,17 +160,10 @@ trait CacheableRepository
      */
     public function all($columns = ['*'])
     {
-        if (!$this->allowedCache('all') || $this->isSkippedCache()) {
+        return $this->cacheRequest(function ($columns = ['*']) {
             return parent::all($columns);
-        }
+        }, $columns);
 
-        $key = $this->getCacheKey('all', func_get_args());
-        $minutes = $this->getCacheMinutes();
-        $value = $this->getCacheRepository()->remember($key, $minutes, function () use ($columns) {
-            return parent::all($columns);
-        });
-
-        return $value;
     }
 
     /**
@@ -229,18 +176,10 @@ trait CacheableRepository
      */
     public function paginate($limit = null, $columns = ['*'])
     {
-        if (!$this->allowedCache('paginate') || $this->isSkippedCache()) {
+        return $this->cacheRequest(function ($limit = null, $columns = ['*']) {
             return parent::paginate($limit, $columns);
-        }
+        }, $limit, $columns);
 
-        $key = $this->getCacheKey('paginate', func_get_args());
-
-        $minutes = $this->getCacheMinutes();
-        $value = $this->getCacheRepository()->remember($key, $minutes, function () use ($limit, $columns) {
-            return parent::paginate($limit, $columns);
-        });
-
-        return $value;
     }
 
     /**
@@ -253,17 +192,9 @@ trait CacheableRepository
      */
     public function find($id, $columns = ['*'])
     {
-        if (!$this->allowedCache('find') || $this->isSkippedCache()) {
+        return $this->cacheRequest(function ($id, array $columns) {
             return parent::find($id, $columns);
-        }
-
-        $key = $this->getCacheKey('find', func_get_args());
-        $minutes = $this->getCacheMinutes();
-        $value = $this->getCacheRepository()->remember($key, $minutes, function () use ($id, $columns) {
-            return parent::find($id, $columns);
-        });
-
-        return $value;
+        }, $id, $columns);
     }
 
     /**
@@ -277,17 +208,9 @@ trait CacheableRepository
      */
     public function findByField($field, $value = null, $columns = ['*'])
     {
-        if (!$this->allowedCache('findByField') || $this->isSkippedCache()) {
+        return $this->cacheRequest(function ($field, $value, array $columns) {
             return parent::findByField($field, $value, $columns);
-        }
-
-        $key = $this->getCacheKey('findByField', func_get_args());
-        $minutes = $this->getCacheMinutes();
-        $value = $this->getCacheRepository()->remember($key, $minutes, function () use ($field, $value, $columns) {
-            return parent::findByField($field, $value, $columns);
-        });
-
-        return $value;
+        }, $field, $value, $columns);
     }
 
     /**
@@ -300,40 +223,11 @@ trait CacheableRepository
      */
     public function findWhere(array $where, $columns = ['*'])
     {
-        if (!$this->allowedCache('findWhere') || $this->isSkippedCache()) {
+        return $this->cacheRequest(function (array $where, array $columns) {
             return parent::findWhere($where, $columns);
-        }
-
-        $key = $this->getCacheKey('findWhere', func_get_args());
-        $minutes = $this->getCacheMinutes();
-        $value = $this->getCacheRepository()->remember($key, $minutes, function () use ($where, $columns) {
-            return parent::findWhere($where, $columns);
-        });
-
-        return $value;
+        }, $where, $columns);
     }
 
-    /**
-     * Find data by Criteria
-     *
-     * @param CriteriaInterface $criteria
-     *
-     * @return mixed
-     */
-    public function getByCriteria(CriteriaInterface $criteria)
-    {
-        if (!$this->allowedCache('getByCriteria') || $this->isSkippedCache()) {
-            return parent::getByCriteria($criteria);
-        }
-
-        $key = $this->getCacheKey('getByCriteria', func_get_args());
-        $minutes = $this->getCacheMinutes();
-        $value = $this->getCacheRepository()->remember($key, $minutes, function () use ($criteria) {
-            return parent::getByCriteria($criteria);
-        });
-
-        return $value;
-    }
 
     /**
      * Used to manually cache a request. Useful when using methods of Eloquent and not the one of the Repository
@@ -346,25 +240,32 @@ trait CacheableRepository
      */
     private function cacheRequest(\Closure $closure, ...$functionArgs)
     {
-        if ($this->isSkippedCache()) {
+        $method = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
+
+        $resultClosure = function () use ($closure, $functionArgs) {
             $this->applyCriteria();
             $this->applyScope();
 
             return call_user_func_array($closure, $functionArgs);
+        };
+
+        if ($this->isSkippedCache() || !$this->allowedCache($method)) {
+            return $resultClosure();
         }
 
-        $key     = $this->getCacheKey(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'], $functionArgs);
+        $key     = $this->getCacheKey($method, $functionArgs);
         $minutes = $this->getCacheMinutes();
-        $value   = $this->getCacheRepository()->remember($key, $minutes, function () use ($closure, $functionArgs) {
-            $this->applyCriteria();
-            $this->applyScope();
 
-            return call_user_func_array($closure, $functionArgs);
-        });
+        if (!($result = $this->getCacheRepository()->get($key))) {
+            $result = $resultClosure();
+
+            $this->getCacheRepository()->put($key, $result, $minutes);
+            CacheKeys::putKey(get_called_class(), $key);
+        }
 
         $this->resetModel();
 
-        return $value;
+        return $result;
     }
 
 }

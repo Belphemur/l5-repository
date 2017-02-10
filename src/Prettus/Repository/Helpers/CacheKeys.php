@@ -4,20 +4,11 @@ namespace Prettus\Repository\Helpers;
 
 /**
  * Class CacheKeys
+ *
  * @package Prettus\Repository\Helpers
  */
 class CacheKeys
 {
-
-    /**
-     * @var string
-     */
-    protected static $storeFile = "repository-cache-keys.json";
-
-    /**
-     * @var array
-     */
-    protected static $keys = null;
 
     /**
      * @param $group
@@ -27,58 +18,11 @@ class CacheKeys
      */
     public static function putKey($group, $key)
     {
-        self::loadKeys();
+        $repoKey = self::getKey($group);
 
-        self::$keys[$group] = self::getKeys($group);
-
-        if (!in_array($key, self::$keys[$group])) {
-            self::$keys[$group][] = $key;
-        }
-
-        self::storeKeys();
-    }
-
-    /**
-     * @return array|mixed
-     */
-    public static function loadKeys()
-    {
-        if (!is_null(self::$keys) && is_array(self::$keys)) {
-            return self::$keys;
-        }
-
-        $file = self::getFileKeys();
-
-        if (!file_exists($file)) {
-            self::storeKeys();
-        }
-
-        $content = file_get_contents($file);
-        self::$keys = json_decode($content, true);
-
-        return self::$keys;
-    }
-
-    /**
-     * @return string
-     */
-    public static function getFileKeys()
-    {
-        $file = storage_path("framework/cache/" . self::$storeFile);
-
-        return $file;
-    }
-
-    /**
-     * @return int
-     */
-    public static function storeKeys()
-    {
-        $file = self::getFileKeys();
-        self::$keys = is_null(self::$keys) ? [] : self::$keys;
-        $content = json_encode(self::$keys);
-
-        return file_put_contents($file, $content);
+        $keys   = self::getKeys($group);
+        $keys[] = $key;
+        \Cache::put($repoKey, serialize($keys), config('repository.cache.minutes'));
     }
 
     /**
@@ -86,12 +30,25 @@ class CacheKeys
      *
      * @return array|mixed
      */
-    public static function getKeys($group)
+    public static function getKeys($group): array
     {
-        self::loadKeys();
-        self::$keys[$group] = isset(self::$keys[$group]) ? self::$keys[$group] : [];
+        $repoKey = self::getKey($group);
 
-        return self::$keys[$group];
+        return unserialize(\Cache::get($repoKey, '{}'));
+    }
+
+    /**
+     * Clean all the keys of the group and the group key
+     *
+     * @param $group
+     */
+    public static function cleanKeys($group)
+    {
+        $repoKey = self::getKey($group);
+        foreach (self::getKeys($group) as $key) {
+            \Cache::forget($key);
+        }
+        \Cache::forget($repoKey);
     }
 
     /**
@@ -106,8 +63,18 @@ class CacheKeys
 
         return call_user_func_array([
             $instance,
-            $method
+            $method,
         ], $parameters);
+    }
+
+    /**
+     * @param $group
+     *
+     * @return string
+     */
+    private static function getKey($group): string
+    {
+        return 'repository/' . $group;
     }
 
     /**
@@ -122,7 +89,7 @@ class CacheKeys
 
         return call_user_func_array([
             $instance,
-            $method
+            $method,
         ], $parameters);
     }
 }
