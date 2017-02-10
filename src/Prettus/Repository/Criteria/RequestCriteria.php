@@ -1,17 +1,19 @@
 <?php
-namespace Prettus\Repository\Criteria;
+namespace Cumulus\Repositories\Criteria;
 
+use Cumulus\Repositories\ISearchValueBindable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryInterface;
+use Prettus\Repository\Contracts\SearchableBindingInterface;
 
 /**
  * Class RequestCriteria
- * @package Prettus\Repository\Criteria
+ * @package Cumulus\Repositories\Criteria
  */
-class RequestCriteria implements CriteriaInterface
+class BindableRequestCriteria implements CriteriaInterface
 {
     /**
      * @var \Illuminate\Http\Request
@@ -27,11 +29,10 @@ class RequestCriteria implements CriteriaInterface
     /**
      * Apply criteria in query repository
      *
-     * @param         Builder|Model     $model
-     * @param RepositoryInterface $repository
+     * @param         Builder|Model                    $model *
+     * @param SearchableBindingInterface|RepositoryInterface $repository
      *
      * @return mixed
-     * @throws \Exception
      */
     public function apply($model, RepositoryInterface $repository)
     {
@@ -45,15 +46,22 @@ class RequestCriteria implements CriteriaInterface
         $sortedBy = !empty($sortedBy) ? $sortedBy : 'asc';
 
         if ($search && is_array($fieldsSearchable) && count($fieldsSearchable)) {
+            $valueBindings = [];
 
-            $searchFields = is_array($searchFields) || is_null($searchFields) ? $searchFields : explode(';', $searchFields);
+            if ($repository instanceof SearchableBindingInterface) {
+                $valueBindings = $repository->getFieldBindings();
+            }
+
+            $searchFields = is_array($searchFields) || is_null($searchFields)
+                ? $searchFields
+                : explode(';', $searchFields);
             $fields = $this->parserFieldsSearch($fieldsSearchable, $searchFields);
             $isFirstField = true;
             $searchData = $this->parserSearchData($search);
             $search = $this->parserSearchValue($search);
             $modelForceAndWhere = false;
 
-            $model = $model->where(function ($query) use ($fields, $search, $searchData, $isFirstField, $modelForceAndWhere) {
+            $model = $model->where(function ($query) use ($fields, $search, $searchData, $isFirstField, $modelForceAndWhere, $valueBindings) {
                 /** @var Builder $query */
 
                 foreach ($fields as $field => $condition) {
@@ -68,12 +76,17 @@ class RequestCriteria implements CriteriaInterface
                     $condition = trim(strtolower($condition));
 
                     if (isset($searchData[$field])) {
-                        $value = ($condition == "like" || $condition == "ilike") ? "%{$searchData[$field]}%" : $searchData[$field];
+                        $value = $searchData[$field];
                     } else {
-                        if (!is_null($search)) {
-                            $value = ($condition == "like" || $condition == "ilike") ? "%{$search}%" : $search;
-                        }
+                        $value = $search;
                     }
+
+                    $value = $this->parseBinding($valueBindings, $value, $field);
+                    if (!$value) {
+                        continue;
+                    }
+                    $value = ($condition == "like" || $condition == "ilike") ? '%'.$value.'%' : $value;
+
 
                     $relation = null;
                     if(stripos($field, '.')) {
@@ -114,7 +127,7 @@ class RequestCriteria implements CriteriaInterface
                 /*
                  * ex.
                  * products|description -> join products on current_table.product_id = products.id order by description
-                 * 
+                 *
                  * products:custom_id|products.description -> join products on current_table.custom_id = products.id order
                  * by products.description (in case both tables have same column name)
                  */
@@ -254,5 +267,16 @@ class RequestCriteria implements CriteriaInterface
         }
 
         return $fields;
+    }
+
+    protected function parseBinding(array $bindings, string $value, string $field) {
+        try {
+            if (!isset($bindings[$field])) {
+                return $value;
+            }
+
+            return $bindings[$field]($value);
+        } catch (\Exception $e) {
+        }
     }
 }
