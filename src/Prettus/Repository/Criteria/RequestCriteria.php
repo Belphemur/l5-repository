@@ -1,5 +1,5 @@
 <?php
-namespace Cumulus\Repositories\Criteria;
+namespace Prettus\Repository\Criteria;
 
 use Cumulus\Repositories\ISearchValueBindable;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +13,7 @@ use Prettus\Repository\Contracts\SearchableBindingInterface;
  * Class RequestCriteria
  * @package Cumulus\Repositories\Criteria
  */
-class BindableRequestCriteria implements CriteriaInterface
+class RequestCriteria implements CriteriaInterface
 {
     /**
      * @var \Illuminate\Http\Request
