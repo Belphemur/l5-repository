@@ -17,6 +17,7 @@ use Prettus\Repository\Traits\TransactionHelper;
 
 /**
  * Class BaseRepository
+ *
  * @package Prettus\Repository\Eloquent
  */
 abstract class BaseRepository implements RepositoryInterface, RepositoryCriteriaInterface, TransactionableInterface
@@ -38,6 +39,13 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      * @var array
      */
     protected $fieldSearchable = [];
+
+    /**
+     * Check if the with can be applied on the field
+     *
+     * @var string[]
+     */
+    protected $fieldIncludable = [];
 
     /**
      * Validation Rules
@@ -73,7 +81,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function __construct(Application $app)
     {
-        $this->app = $app;
+        $this->app      = $app;
         $this->criteria = new Collection();
         $this->makeModel();
         $this->boot();
@@ -153,7 +161,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     public function lists($column, $key = null)
     {
         $this->applyCriteria();
-        
+
         return $this->model->lists($column, $key);
     }
 
@@ -214,7 +222,9 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     {
         $this->applyCriteria();
         $this->applyScope();
-        $limit = is_null($limit) ? config('repository.pagination.limit', 15) : $limit;
+        $limit   = is_null($limit)
+            ? config('repository.pagination.limit', 15)
+            : $limit;
         $results = $this->model->{$method}($limit, $columns);
         $results->appends(app('request')->query());
         $this->resetModel();
@@ -423,7 +433,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
         $temporarySkipPresenter = $this->skipPresenter;
         $this->skipPresenter(true);
 
-        $model = $this->find($id);
+        $model         = $this->find($id);
         $originalModel = clone $model;
 
         $this->skipPresenter($temporarySkipPresenter);
@@ -489,11 +499,11 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
         return $this;
     }
-    
+
     /**
      * Load relation with closure
      *
-     * @param string $relation
+     * @param string  $relation
      * @param closure $closure
      *
      * @return $this
@@ -554,7 +564,8 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
             $criteria = new $criteria;
         }
         if (!$criteria instanceof CriteriaInterface) {
-            throw new RepositoryException("Class " . get_class($criteria) . " must be an instance of Prettus\\Repository\\Contracts\\CriteriaInterface");
+            throw new RepositoryException("Class " . get_class($criteria)
+                                          . " must be an instance of Prettus\\Repository\\Contracts\\CriteriaInterface");
         }
         $this->criteria->push($criteria);
 
@@ -605,7 +616,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     public function getByCriteria(CriteriaInterface $criteria)
     {
         $this->model = $criteria->apply($this->model, $this);
-        $results = $this->model->get();
+        $results     = $this->model->get();
         $this->resetModel();
 
         return $results;
@@ -657,7 +668,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     protected function applyScope()
     {
         if (isset($this->scopeQuery) && is_callable($this->scopeQuery)) {
-            $callback = $this->scopeQuery;
+            $callback    = $this->scopeQuery;
             $this->model = $callback($this->model);
         }
 
@@ -693,6 +704,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      * Applies the given where conditions to the model.
      *
      * @param array $where
+     *
      * @return void
      */
     protected function applyConditions(array $where)
@@ -706,4 +718,16 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
             }
         }
     }
+
+    /**
+     * Fields that can be used with a with to eager load
+     *
+     * @return \string[]
+     */
+    public function getFieldIncludable()
+    {
+        return $this->fieldIncludable;
+    }
+
+
 }

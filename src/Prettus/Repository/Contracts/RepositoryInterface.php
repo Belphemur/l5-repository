@@ -199,4 +199,13 @@ interface RepositoryInterface
      * @return array
      */
     public function getFieldsSearchable();
+
+    /**
+     * Fields that can be used with a with to eager load
+     *
+     * @return \string[]
+     */
+    public function getFieldIncludable();
+
+
 }

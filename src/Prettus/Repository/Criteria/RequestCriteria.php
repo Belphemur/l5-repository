@@ -37,6 +37,8 @@ class RequestCriteria implements CriteriaInterface
     public function apply($model, RepositoryInterface $repository)
     {
         $fieldsSearchable = $repository->getFieldsSearchable();
+        $fieldIncludable = $repository->getFieldIncludable();
+
         $search = $this->request->get(config('repository.criteria.params.search', 'search'), null);
         $searchFields = $this->request->get(config('repository.criteria.params.searchFields', 'searchFields'), null);
         $filter = $this->request->get(config('repository.criteria.params.filter', 'filter'), null);
@@ -168,7 +170,7 @@ class RequestCriteria implements CriteriaInterface
             $model = $model->select($filter);
         }
 
-        if ($with) {
+        if ($with && in_array($with, $fieldIncludable)) {
             $with = explode(';', $with);
             $model = $model->with($with);
         }
