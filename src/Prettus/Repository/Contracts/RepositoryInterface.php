@@ -207,5 +207,10 @@ interface RepositoryInterface
      */
     public function getFieldIncludable();
 
+    /**
+     * Pop all the criterion
+     */
+    public function flushCriterion();
+
 
 }

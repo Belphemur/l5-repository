@@ -59,7 +59,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      *
      * @var Collection
      */
-    protected $criteria;
+    protected $criterion;
 
     /**
      * @var bool
@@ -82,7 +82,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     public function __construct(Application $app)
     {
         $this->app      = $app;
-        $this->criteria = new Collection();
+        $this->flushCriterion();
         $this->makeModel();
         $this->boot();
     }
@@ -374,15 +374,10 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     {
         $this->applyScope();
 
-        $temporarySkipPresenter = $this->skipPresenter;
-
-        $this->skipPresenter(true);
-
         $model = $this->model->findOrFail($id);
         $model->fill($attributes);
         $model->save();
 
-        $this->skipPresenter($temporarySkipPresenter);
         $this->resetModel();
 
         event(new RepositoryEntityUpdated($this, $model));
@@ -405,13 +400,8 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
         $this->applyScope();
 
 
-        $temporarySkipPresenter = $this->skipPresenter;
-
-        $this->skipPresenter(true);
-
         $model = $this->model->updateOrCreate($attributes, $values);
 
-        $this->skipPresenter($temporarySkipPresenter);
         $this->resetModel();
 
         event(new RepositoryEntityUpdated($this, $model));
@@ -430,13 +420,9 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     {
         $this->applyScope();
 
-        $temporarySkipPresenter = $this->skipPresenter;
-        $this->skipPresenter(true);
-
         $model         = $this->find($id);
         $originalModel = clone $model;
 
-        $this->skipPresenter($temporarySkipPresenter);
         $this->resetModel();
 
         $deleted = $model->delete();
@@ -457,8 +443,6 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     {
         $this->applyScope();
 
-        $temporarySkipPresenter = $this->skipPresenter;
-        $this->skipPresenter(true);
 
         $this->applyConditions($where);
 
@@ -466,7 +450,6 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
         event(new RepositoryEntityDeleted($this, $this->model));
 
-        $this->skipPresenter($temporarySkipPresenter);
         $this->resetModel();
 
         return $deleted;
@@ -567,7 +550,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
             throw new RepositoryException("Class " . get_class($criteria)
                                           . " must be an instance of Prettus\\Repository\\Contracts\\CriteriaInterface");
         }
-        $this->criteria->push($criteria);
+        $this->criterion->push($criteria);
 
         return $this;
     }
@@ -581,7 +564,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function popCriteria($criteria)
     {
-        $this->criteria = $this->criteria->reject(function ($item) use ($criteria) {
+        $this->criterion = $this->criterion->reject(function ($item) use ($criteria) {
             if (is_object($item) && is_string($criteria)) {
                 return get_class($item) === $criteria;
             }
@@ -597,13 +580,21 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     }
 
     /**
+     * Pop all the criterion
+     */
+    public function flushCriterion()
+    {
+        $this->criterion = new Collection();
+    }
+
+    /**
      * Get Collection of Criteria
      *
      * @return Collection
      */
-    public function getCriteria()
+    public function getCriterion()
     {
-        return $this->criteria;
+        return $this->criterion;
     }
 
     /**
@@ -643,7 +634,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function resetCriteria()
     {
-        $this->criteria = new Collection();
+        $this->criterion = new Collection();
 
         return $this;
     }
@@ -687,10 +678,10 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
             return $this;
         }
 
-        $criteria = $this->getCriteria();
+        $criterion = $this->getCriterion();
 
-        if ($criteria) {
-            foreach ($criteria as $c) {
+        if ($criterion) {
+            foreach ($criterion as $c) {
                 if ($c instanceof CriteriaInterface) {
                     $this->model = $c->apply($this->model, $this);
                 }

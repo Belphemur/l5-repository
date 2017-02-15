@@ -34,7 +34,7 @@ interface RepositoryCriteriaInterface
      *
      * @return Collection
      */
-    public function getCriteria();
+    public function getCriterion();
 
     /**
      * Find data by Criteria
