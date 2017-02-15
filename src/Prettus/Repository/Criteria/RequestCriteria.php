@@ -4,8 +4,6 @@ namespace Prettus\Repository\Criteria;
 use Cumulus\Repositories\ISearchValueBindable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
-use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryInterface;
 use Prettus\Repository\Contracts\SearchableBindingInterface;
 
@@ -14,17 +12,9 @@ use Prettus\Repository\Contracts\SearchableBindingInterface;
  *
  * @package Cumulus\Repositories\Criteria
  */
-class RequestCriteria implements CriteriaInterface
+class RequestCriteria extends IncludeCriteria
 {
-    /**
-     * @var \Illuminate\Http\Request
-     */
-    protected $request;
 
-    public function __construct(Request $request)
-    {
-        $this->request = $request;
-    }
 
 
     /**
@@ -38,14 +28,13 @@ class RequestCriteria implements CriteriaInterface
     public function apply($model, RepositoryInterface $repository)
     {
         $fieldsSearchable = $repository->getFieldsSearchable();
-        $fieldIncludable  = $repository->getFieldIncludable();
 
         $search       = $this->request->get(config('repository.criteria.params.search', 'search'), null);
         $searchFields = $this->request->get(config('repository.criteria.params.searchFields', 'searchFields'), null);
         $filter       = $this->request->get(config('repository.criteria.params.filter', 'filter'), null);
         $orderBy      = $this->request->get(config('repository.criteria.params.orderBy', 'orderBy'), null);
         $sortedBy     = $this->request->get(config('repository.criteria.params.sortedBy', 'sortedBy'), 'asc');
-        $with         = $this->request->get(config('repository.criteria.params.with', 'with'), null);
+
         $sortedBy     = !empty($sortedBy)
             ? $sortedBy
             : 'asc';
@@ -62,11 +51,7 @@ class RequestCriteria implements CriteriaInterface
             $model = $this->processFilter($model, $filter);
         }
 
-        if ($with && in_array($with, $fieldIncludable)) {
-            $model = $this->processWith($model, $with);
-        }
-
-        return $model;
+        return parent::apply($model, $repository);
     }
 
     /**
@@ -337,22 +322,6 @@ class RequestCriteria implements CriteriaInterface
         }
 
         $model = $model->select($filter);
-
-        return $model;
-    }
-
-    /**
-     * Process includes
-     *
-     * @param Builder|Model $model
-     * @param string        $with
-     *
-     * @return Builder|Model
-     */
-    protected function processWith($model, string $with)
-    {
-        $with  = explode(';', $with);
-        $model = $model->with($with);
 
         return $model;
     }
