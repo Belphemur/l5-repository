@@ -1,5 +1,7 @@
 <?php
 namespace Prettus\Repository\Contracts;
+use Illuminate\Database\Eloquent\Model;
+use Prettus\Repository\Exceptions\RepositoryException;
 
 /**
  * Interface RepositoryInterface
@@ -211,6 +213,12 @@ interface RepositoryInterface
      * Pop all the criterion
      */
     public function flushCriterion();
+
+    /**
+     * @return Model
+     * @throws RepositoryException
+     */
+    public function makeModel();
 
 
 }

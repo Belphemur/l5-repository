@@ -1,9 +1,10 @@
 <?php
 namespace Prettus\Repository\Criteria;
 
-use Cumulus\Repositories\ISearchValueBindable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Prettus\Repository\Contracts\RepositoryInterface;
 use Prettus\Repository\Contracts\SearchableBindingInterface;
 
@@ -14,7 +15,6 @@ use Prettus\Repository\Contracts\SearchableBindingInterface;
  */
 class RequestCriteria extends IncludeCriteria
 {
-
 
 
     /**
@@ -35,7 +35,7 @@ class RequestCriteria extends IncludeCriteria
         $orderBy      = $this->request->get(config('repository.criteria.params.orderBy', 'orderBy'), null);
         $sortedBy     = $this->request->get(config('repository.criteria.params.sortedBy', 'sortedBy'), 'asc');
 
-        $sortedBy     = !empty($sortedBy)
+        $sortedBy = !empty($sortedBy)
             ? $sortedBy
             : 'asc';
 
@@ -44,7 +44,7 @@ class RequestCriteria extends IncludeCriteria
         }
 
         if (isset($orderBy) && !empty($orderBy)) {
-            $model = $this->processOrderBy($model, $orderBy, $sortedBy);
+            $model = $this->processOrderBy($model, $orderBy, $sortedBy, $repository->makeModel());
         }
 
         if (isset($filter) && !empty($filter)) {
@@ -257,53 +257,63 @@ class RequestCriteria extends IncludeCriteria
     /**
      * Process order by
      *
-     * @param     Builder|Model $model
+     * @param     Builder|Model $query
      * @param string            $orderBy
      * @param string            $sortedBy
      *
+     * @param Model             $modelObject
+     *
      * @return Builder|Model
      */
-    protected function processOrderBy($model, string $orderBy, string $sortedBy)
+    protected function processOrderBy($query, string $orderBy, string $sortedBy, Model $modelObject)
     {
         $split = explode('|', $orderBy);
         if (count($split) > 1) {
-            /*
-             * ex.
-             * products|description -> join products on current_table.product_id = products.id order by description
+            $relation = $split[0];
+            $field    = $split[1];
+            /**
+             * relationName|field
              *
-             * products:custom_id|products.description -> join products on current_table.custom_id = products.id order
-             * by products.description (in case both tables have same column name)
+             * Ex:
+             * authorOfBook|name
+             *
              */
-            $table      = $model->getModel()->getTable();
-            $sortTable  = $split[0];
-            $sortColumn = $split[1];
 
-            $split = explode(':', $sortTable);
-            if (count($split) > 1) {
-                $sortTable = $split[0];
-                $keyName   = $table . '.' . $split[1];
-            } else {
-                /*
-                 * If you do not define which column to use as a joining column on current table, it will
-                 * use a singular of a join table appended with _id
-                 *
-                 * ex.
-                 * products -> product_id
-                 */
-                $prefix  = rtrim($sortTable, 's');
-                $keyName = $table . '.' . $prefix . '_id';
+            if (!method_exists($modelObject, $relation)) {
+                return $query;
             }
 
-            $model = $model
-                ->leftJoin($sortTable, $keyName, '=', $sortTable . '.id')
+            $relationObj = $modelObject->$relation();
+
+            if (!$relationObj instanceof HasOneOrMany && !$relationObj instanceof BelongsTo) {
+                return $query;
+            }
+
+            if ($relationObj instanceof HasOneOrMany) {
+                $foreignKey = $relationObj->getForeignKeyName();
+            } else {
+                $foreignKey = $relationObj->getForeignKey();
+            }
+
+            $sortTable   = $relationObj->getRelated()->getTable();
+            $sortTableAs = $sortTable . '_sorting_' . mt_rand(0, 128);
+            $sortColumn  = $sortTableAs . '.' . $field;
+            $foreignKey  = $modelObject->getTable() . '.' . $foreignKey;
+            $keyName     = $sortTableAs . '.' . $relationObj->getRelated()->getKeyName();
+
+            $query = $query
+                ->leftJoin($sortTable . ' AS ' . $sortTableAs, $keyName, '=', $foreignKey)
                 ->orderBy($sortColumn, $sortedBy)
-                ->addSelect($table . '.*');
+                ->addSelect([
+                    $modelObject->getTable() . '.*',
+                    $sortColumn . ' AS sorting_field_' . mt_rand(),
+                ]);
 
-            return $model;
+            return $query;
         } else {
-            $model = $model->orderBy($orderBy, $sortedBy);
+            $query = $query->orderBy($orderBy, $sortedBy);
 
-            return $model;
+            return $query;
         }
     }
 
