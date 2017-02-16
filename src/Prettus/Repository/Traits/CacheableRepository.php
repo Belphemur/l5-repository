@@ -242,9 +242,10 @@ trait CacheableRepository
     {
         $method = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
 
+        $this->applyCriteria();
+        $this->applyScope();
+
         $resultClosure = function () use ($closure, $functionArgs) {
-            $this->applyCriteria();
-            $this->applyScope();
 
             return call_user_func_array($closure, $functionArgs);
         };
