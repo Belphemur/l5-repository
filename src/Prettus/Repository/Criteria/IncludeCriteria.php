@@ -26,6 +26,7 @@ class IncludeCriteria implements CriteriaInterface
     {
         $this->request = $request;
     }
+
     /**
      * Apply criteria in query repository
      *
@@ -36,10 +37,15 @@ class IncludeCriteria implements CriteriaInterface
      */
     public function apply($model, RepositoryInterface $repository)
     {
-        $with         = $this->request->get(config('repository.criteria.params.with', 'with'), null);
-        $fieldIncludable  = $repository->getFieldIncludable();
+        $with            = $this->request->get(config('repository.criteria.params.with', 'with'), null);
+        $fieldIncludable = $repository->getFieldIncludable();
 
-        if ($with && in_array($with, $fieldIncludable)) {
+        if (!$with) {
+            return $model;
+        }
+
+        $with = explode(';', $with);
+        if ($this->isPresentInArray($fieldIncludable, $with)) {
             $model = $this->processWith($model, $with);
         }
 
@@ -47,16 +53,28 @@ class IncludeCriteria implements CriteriaInterface
     }
 
     /**
+     * Check if Check is present in source
+     *
+     * @param array $source
+     * @param array $check
+     *
+     * @return bool
+     */
+    protected function isPresentInArray(array $source, array $check): bool
+    {
+        return count(array_intersect($check, $source)) == count($check);
+    }
+
+    /**
      * Process includes
      *
      * @param Builder|Model $model
-     * @param string        $with
+     * @param string[]      $with
      *
-     * @return Builder|Model
+     * @return Model|Builder
      */
-    protected function processWith($model, string $with)
+    protected function processWith($model, array $with)
     {
-        $with  = explode(';', $with);
         $model = $model->with($with);
 
         return $model;
