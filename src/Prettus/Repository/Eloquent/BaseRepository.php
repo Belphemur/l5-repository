@@ -26,6 +26,11 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     use TransactionHelper;
 
     /**
+     * @var int
+     */
+    protected $maxPerPage = 100;
+
+    /**
      * @var Application
      */
     protected $app;
@@ -718,6 +723,27 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     public function getFieldIncludable()
     {
         return $this->fieldIncludable;
+    }
+
+    /**
+     * Gather the current perPage for pagination
+     *
+     * @return int
+     */
+    protected function getCurrentPagination(): int
+    {
+        $perPage = \Request::input('perPage')
+            ?: $this->makeModel()->getPerPage();
+
+        if (!filter_var($perPage, FILTER_VALIDATE_INT)) {
+            $perPage = $this->makeModel()->getPerPage();
+        }
+
+        if($perPage > $this->maxPerPage) {
+            $perPage = $this->maxPerPage;
+        }
+
+        return intval($perPage);
     }
 
 
