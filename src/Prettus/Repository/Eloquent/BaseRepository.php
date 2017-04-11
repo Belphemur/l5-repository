@@ -1,4 +1,5 @@
 <?php
+
 namespace Prettus\Repository\Eloquent;
 
 use Illuminate\Container\Container as Application;
@@ -86,7 +87,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function __construct(Application $app)
     {
-        $this->app      = $app;
+        $this->app = $app;
         $this->flushCriterion();
         $this->makeModel();
         $this->boot();
@@ -739,12 +740,12 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
             $perPage = $this->makeModel()->getPerPage();
         }
 
-        if($perPage > $this->maxPerPage) {
+        if ($perPage > $this->maxPerPage) {
             $perPage = $this->maxPerPage;
         }
 
-        if($perPage < 0) {
-            $perPage =  $this->makeModel()->getPerPage();
+        if ($perPage < 0) {
+            $perPage = $this->makeModel()->getPerPage();
         }
 
         return intval($perPage);
