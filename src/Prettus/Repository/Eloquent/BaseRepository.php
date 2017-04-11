@@ -743,6 +743,10 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
             $perPage = $this->maxPerPage;
         }
 
+        if($perPage < 0) {
+            $perPage =  $this->makeModel()->getPerPage();
+        }
+
         return intval($perPage);
     }
 
