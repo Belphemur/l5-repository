@@ -89,13 +89,17 @@ trait CacheableRepository
      */
     protected function allowedCache($method)
     {
+        if (isset($this->overrideCache)) {
+            return $this->overrideCache;
+        }
+
         $cacheEnabled = config('repository.cache.enabled', true);
 
         if (!$cacheEnabled) {
             return false;
         }
 
-        $cacheOnly   = isset($this->cacheOnly) ? $this->cacheOnly  : config('repository.cache.allowed.only', null);
+        $cacheOnly   = isset($this->cacheOnly) ? $this->cacheOnly : config('repository.cache.allowed.only', null);
         $cacheExcept = isset($this->cacheExcept) ? $this->cacheExcept : config('repository.cache.allowed.except', null);
 
 
