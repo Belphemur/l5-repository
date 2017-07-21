@@ -51,4 +51,11 @@ interface CacheableInterface
      * @return $this
      */
     public function skipCache($status = true);
+
+    /**
+     * Clean the cache for this repository
+     *
+     * Doing this will invalidate all cache entry linked with this repository
+     */
+    public function cleanCache();
 }
