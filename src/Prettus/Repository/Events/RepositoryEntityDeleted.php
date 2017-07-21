@@ -5,7 +5,7 @@ namespace Prettus\Repository\Events;
  * Class RepositoryEntityDeleted
  * @package Prettus\Repository\Events
  */
-class RepositoryEntityDeleted extends RepositoryEventBase
+class RepositoryEntityDeleted extends RepositoryEventModelBase
 {
     /**
      * @var string

@@ -4,6 +4,7 @@ namespace Prettus\Repository\Traits;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
+use Prettus\Repository\Events\RepositoryCleanEvent;
 use Prettus\Repository\Helpers\CacheKeys;
 
 /**
@@ -271,6 +272,16 @@ trait CacheableRepository
         $this->resetModel();
 
         return $result;
+    }
+
+    /**
+     * Clean the cache for this repository
+     *
+     * Doing this will invalidate all cache entry linked with this repository
+     */
+    public function cleanCache()
+    {
+        event(new RepositoryCleanEvent($this));
     }
 
 }

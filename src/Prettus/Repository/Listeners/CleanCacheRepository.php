@@ -4,6 +4,7 @@ namespace Prettus\Repository\Listeners;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Log;
+use Prettus\Repository\Events\RepositoryCleanEvent;
 use Prettus\Repository\Events\RepositoryEventBase;
 use Prettus\Repository\Helpers\CacheKeys;
 
@@ -41,7 +42,9 @@ class CleanCacheRepository
                 $repository = $event->getRepository();
                 $action     = $event->getAction();
 
-                if (config("repository.cache.clean.on.{$action}", true)) {
+                if ($action == RepositoryCleanEvent::ACTION
+                    || config("repository.cache.clean.on.{$action}", true)
+                ) {
                     CacheKeys::cleanKeys(get_class($repository));
                 }
             }
