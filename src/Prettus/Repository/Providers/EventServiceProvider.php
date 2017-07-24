@@ -3,6 +3,7 @@
 namespace Prettus\Repository\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Prettus\Repository\Events\RepositoryCleanEvent;
 use Prettus\Repository\Events\RepositoryEntityCreated;
 use Prettus\Repository\Events\RepositoryEntityDeleted;
 use Prettus\Repository\Events\RepositoryEntityUpdated;
@@ -25,6 +26,9 @@ class EventServiceProvider extends ServiceProvider
                 CleanCacheRepository::class,
             ],
             RepositoryEntityDeleted::class => [
+                CleanCacheRepository::class,
+            ],
+            RepositoryCleanEvent::class    => [
                 CleanCacheRepository::class,
             ],
         ];
