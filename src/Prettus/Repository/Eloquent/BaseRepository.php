@@ -119,7 +119,6 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
     /**
      * @return Model
-     * @throws RepositoryException
      */
     public function makeModel()
     {
