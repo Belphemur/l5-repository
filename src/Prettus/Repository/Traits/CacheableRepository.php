@@ -24,14 +24,6 @@ trait CacheableRepository
      * @var CacheRepository
      */
     protected $cacheRepository = null;
-
-    /**
-     * Set this to true or false to set if the caching is enable/disable for the repository
-     *
-     * @var null|bool
-     */
-    protected $overrideCache = null;
-
     /**
      * Set Cache Repository
      *

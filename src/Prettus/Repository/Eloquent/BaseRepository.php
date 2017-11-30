@@ -83,6 +83,15 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     protected $scopeQuery = null;
 
     /**
+     * Set this to true or false to set if the caching is enable/disable for the repository
+     * Used when using cached repository
+     *
+     * @var null|bool
+     */
+    protected $overrideCache = null;
+
+
+    /**
      * @param Application $app
      */
     public function __construct(Application $app)
