@@ -26,6 +26,13 @@ trait CacheableRepository
     protected $cacheRepository = null;
 
     /**
+     * Set this to true or false to set if the caching is enable/disable for the repository
+     *
+     * @var null|bool
+     */
+    protected $overrideCache = null;
+
+    /**
      * Set Cache Repository
      *
      * @param CacheRepository $repository
@@ -90,7 +97,7 @@ trait CacheableRepository
      */
     protected function allowedCache($method)
     {
-        if (isset($this->overrideCache)) {
+        if (!is_null($this->overrideCache)) {
             return $this->overrideCache;
         }
 
