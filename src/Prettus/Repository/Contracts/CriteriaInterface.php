@@ -1,6 +1,8 @@
 <?php
 namespace Prettus\Repository\Contracts;
 
+use Illuminate\Database\Eloquent\Builder;
+
 /**
  * Interface CriteriaInterface
  * @package Prettus\Repository\Contracts
@@ -15,5 +17,5 @@ interface CriteriaInterface
      *
      * @return mixed
      */
-    public function apply($model, RepositoryInterface $repository);
+    public function apply(Builder $model, RepositoryInterface $repository);
 }

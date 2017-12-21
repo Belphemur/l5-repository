@@ -9,8 +9,8 @@
 namespace Prettus\Repository\Criteria;
 
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryInterface;
@@ -35,7 +35,7 @@ class IncludeCriteria implements CriteriaInterface
      *
      * @return mixed
      */
-    public function apply($model, RepositoryInterface $repository)
+    public function apply(Builder $model, RepositoryInterface $repository)
     {
         $with            = $this->request->get(config('repository.criteria.params.with', 'with'), null);
         $fieldIncludable = $repository->getFieldIncludable();
@@ -73,7 +73,7 @@ class IncludeCriteria implements CriteriaInterface
      *
      * @return Model|Builder
      */
-    protected function processWith($model, array $with)
+    protected function processWith(Builder $model, array $with)
     {
         $model = $model->with($with);
 

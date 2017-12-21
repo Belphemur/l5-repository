@@ -1,4 +1,5 @@
 <?php
+
 namespace Prettus\Repository\Criteria;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -25,7 +26,7 @@ class RequestCriteria extends IncludeCriteria
      *
      * @return mixed
      */
-    public function apply($model, RepositoryInterface $repository)
+    public function apply(Builder $model, RepositoryInterface $repository)
     {
         $fieldsSearchable = $repository->getFieldsSearchable();
 
@@ -141,7 +142,6 @@ class RequestCriteria extends IncludeCriteria
             if (count($fields) == 0) {
                 throw new \Exception(trans('repository::criteria.fields_not_accepted', ['field' => implode(',', $searchFields)]));
             }
-
         }
 
         return $fields;
@@ -170,9 +170,14 @@ class RequestCriteria extends IncludeCriteria
      *
      * @return Builder|Model
      */
-    protected function processSearch($model, RepositoryInterface $repository, $searchFields, array $fieldsSearchable,
-                                     string $search)
-    {
+    protected function processSearch(
+        $model,
+        RepositoryInterface $repository,
+        $searchFields,
+        array $fieldsSearchable,
+        string $search
+    ) {
+
         $valueBindings = [];
 
         if ($repository instanceof SearchableBindingInterface) {
@@ -189,12 +194,16 @@ class RequestCriteria extends IncludeCriteria
         $modelForceAndWhere = false;
 
         $model = $model->where(function ($query) use (
-            $fields, $search, $searchData, $isFirstField, $modelForceAndWhere, $valueBindings
+            $fields,
+            $search,
+            $searchData,
+            $isFirstField,
+            $modelForceAndWhere,
+            $valueBindings
         ) {
             /** @var Builder $query */
 
             foreach ($fields as $field => $condition) {
-
                 if (is_numeric($field)) {
                     $field     = $condition;
                     $condition = "=";

@@ -620,7 +620,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function getByCriteria(CriteriaInterface $criteria)
     {
-        $this->model = $criteria->apply($this->model, $this);
+        $this->model = $criteria->apply($this->model->newQuery(), $this);
         $results     = $this->model->get();
         $this->resetModel();
 
@@ -697,7 +697,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
         if ($criterion) {
             foreach ($criterion as $c) {
                 if ($c instanceof CriteriaInterface) {
-                    $this->model = $c->apply($this->model, $this);
+                    $this->model = $c->apply($this->model->newQuery(), $this);
                 }
             }
         }
