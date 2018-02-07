@@ -178,11 +178,11 @@ trait CacheableRepository
      *
      * @return mixed
      */
-    public function paginate($limit = null, $columns = ['*'])
+    public function paginate($limit = null, $columns = ['*'], $method = "paginate")
     {
-        return $this->cacheRequest(function ($limit = null, $columns = ['*']) {
-            return parent::paginate($limit, $columns);
-        }, $limit, $columns);
+        return $this->cacheRequest(function ($limit, $columns, $method) {
+            return parent::paginate($limit, $columns, $method);
+        }, $limit, $columns, $method);
 
     }
 
