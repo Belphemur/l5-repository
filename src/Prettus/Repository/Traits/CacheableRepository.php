@@ -24,6 +24,7 @@ trait CacheableRepository
      * @var CacheRepository
      */
     protected $cacheRepository = null;
+
     /**
      * Set Cache Repository
      *
@@ -71,12 +72,18 @@ trait CacheableRepository
      */
     public function isSkippedCache()
     {
-        $skipped        = isset($this->cacheSkip) ? $this->cacheSkip : false;
-        $request        = app(Request::class);
-        $skipCacheParam = config('repository.cache.params.skipCache', 'skipCache');
+        $skipped         = isset($this->cacheSkip) ? $this->cacheSkip : false;
+        $request         = app(Request::class);
+        $skipCacheLegacy = config('repository.cache.params.skipCache', 'skipCache');
 
-        if ($request->has($skipCacheParam) && $request->get($skipCacheParam)) {
-            $skipped = true;
+        if ($request->has($skipCacheLegacy) && $request->get($skipCacheLegacy)) {
+            return true;
+        }
+
+        foreach (config('repository.cache.params.cacheSkip', []) as $requestParam) {
+            if ($request->has($requestParam) && $request->get($requestParam)) {
+                return true;
+            }
         }
 
         return $skipped;

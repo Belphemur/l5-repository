@@ -101,7 +101,11 @@ return [
             | Ex: http://prettus.local/?search=lorem&skipCache=true
             |
             */
-            'skipCache' => 'skipCache'
+            'skipCache' => 'skipCache',
+            'cacheSkip' => [
+                'skipCache',
+                'include'
+            ]
         ],
 
         /*
