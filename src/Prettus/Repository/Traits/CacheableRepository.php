@@ -262,7 +262,10 @@ trait CacheableRepository
         };
 
         if ($this->isSkippedCache() || !$this->allowedCache($method)) {
-            return $resultClosure();
+            $result = $resultClosure();
+            $this->resetModel();
+
+            return $result;
         }
 
         $key     = $this->getCacheKey($method, $functionArgs);
