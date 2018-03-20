@@ -318,6 +318,23 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
     }
 
     /**
+     * Does this model with the given condition exists
+     * @param $id
+     * @param string $column
+     *
+     * @return bool
+     */
+    public function modelExists($id, string $column = 'id'): bool
+    {
+        $this->applyCriteria();
+        $this->applyScope();
+        $result = $this->model->where($column, '=', $id)->exists();
+        $this->resetModel();
+
+        return $result;
+    }
+
+    /**
      * Find data by multiple values in one field
      *
      * @param       $field

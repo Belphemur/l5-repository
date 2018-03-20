@@ -227,5 +227,13 @@ interface RepositoryInterface
      */
     public function model();
 
-
+    /**
+     * Does this model with the given condition exists
+     *
+     * @param $id
+     * @param string $column
+     *
+     * @return bool
+     */
+    public function modelExists($id, string $column = 'id'): bool;
 }
