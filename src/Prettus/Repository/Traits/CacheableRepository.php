@@ -251,36 +251,35 @@ trait CacheableRepository
      */
     private function cacheRequest(\Closure $closure, ...$functionArgs)
     {
-        $method = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
+        try {
+            $method = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
 
-        $this->applyCriteria();
-        $this->applyScope();
+            $this->applyCriteria();
+            $this->applyScope();
 
-        $resultClosure = function () use ($closure, $functionArgs) {
+            $resultClosure = function () use ($closure, $functionArgs) {
 
-            return call_user_func_array($closure, $functionArgs);
-        };
+                return call_user_func_array($closure, $functionArgs);
+            };
 
-        if ($this->isSkippedCache() || !$this->allowedCache($method)) {
-            $result = $resultClosure();
-            $this->resetModel();
+            if ($this->isSkippedCache() || !$this->allowedCache($method)) {
+                return $resultClosure();
+            }
+
+            $key     = $this->getCacheKey($method, $functionArgs);
+            $minutes = $this->getCacheMinutes();
+
+            if (!($result = $this->getCacheRepository()->get($key))) {
+                $result = $resultClosure();
+
+                $this->getCacheRepository()->put($key, $result, $minutes);
+                CacheKeys::putKey(get_called_class(), $key);
+            }
 
             return $result;
+        } finally {
+            $this->resetModel();
         }
-
-        $key     = $this->getCacheKey($method, $functionArgs);
-        $minutes = $this->getCacheMinutes();
-
-        if (!($result = $this->getCacheRepository()->get($key))) {
-            $result = $resultClosure();
-
-            $this->getCacheRepository()->put($key, $result, $minutes);
-            CacheKeys::putKey(get_called_class(), $key);
-        }
-
-        $this->resetModel();
-
-        return $result;
     }
 
     /**
