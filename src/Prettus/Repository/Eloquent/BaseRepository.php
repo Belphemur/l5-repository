@@ -5,10 +5,12 @@ namespace Prettus\Repository\Eloquent;
 use Illuminate\Container\Container as Application;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryCriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryInterface;
+use Prettus\Repository\Contracts\Request\RequestWithCriterion;
 use Prettus\Repository\Contracts\TransactionableInterface;
 use Prettus\Repository\Events\RepositoryEntityCreated;
 use Prettus\Repository\Events\RepositoryEntityDeleted;
@@ -89,14 +91,20 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      * @var null|bool
      */
     protected $overrideCache = null;
+    /**
+     * @var Request
+     */
+    private $request;
 
 
     /**
      * @param Application $app
+     * @param Request     $request
      */
-    public function __construct(Application $app)
+    public function __construct(Application $app, Request $request)
     {
-        $this->app = $app;
+        $this->app     = $app;
+        $this->request = $request;
         $this->flushCriterion();
         $this->makeModel();
         $this->boot();
@@ -107,7 +115,6 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     protected function boot()
     {
-
     }
 
     /**
@@ -319,7 +326,8 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
     /**
      * Does this model with the given condition exists
-     * @param $id
+     *
+     * @param        $id
      * @param string $column
      *
      * @return bool
@@ -569,6 +577,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      *
      * @param $criteria
      *
+     * @deprecated Put criteria in request
      * @return $this
      * @throws \Prettus\Repository\Exceptions\RepositoryException
      */
@@ -591,6 +600,7 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      *
      * @param $criteria
      *
+     * @deprecated  Put criteria in request
      * @return $this
      */
     public function popCriteria($criteria)
@@ -612,6 +622,8 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
     /**
      * Pop all the criterion
+     *
+     * @deprecated Put criteria in request
      */
     public function flushCriterion()
     {
@@ -625,7 +637,11 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function getCriterion()
     {
-        return $this->criterion;
+        if (!$this->request instanceof RequestWithCriterion) {
+            return $this->criterion;
+        }
+
+        return $this->criterion->merge($this->request->criterion());
     }
 
     /**
@@ -711,13 +727,16 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
         $criterion = $this->getCriterion();
 
-        if ($criterion) {
-            foreach ($criterion as $c) {
-                if ($c instanceof CriteriaInterface) {
-                    $this->model = $c->apply($this->model->newQuery(), $this);
-                }
+        if ($criterion->isEmpty()) {
+            return $this;
+        }
+
+        foreach ($criterion as $c) {
+            if ($c instanceof CriteriaInterface) {
+                $this->model = $c->apply($this->model->newQuery(), $this);
             }
         }
+
 
         return $this;
     }
@@ -775,6 +794,4 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
 
         return intval($perPage);
     }
-
-
 }
