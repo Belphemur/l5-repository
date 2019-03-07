@@ -17,6 +17,7 @@ use Prettus\Repository\Events\RepositoryEntityCreated;
 use Prettus\Repository\Events\RepositoryEntityDeleted;
 use Prettus\Repository\Events\RepositoryEntityUpdated;
 use Prettus\Repository\Exceptions\RepositoryException;
+use Prettus\Repository\Helpers\RequestSaver;
 use Prettus\Repository\Traits\TransactionHelper;
 
 /**
@@ -92,20 +93,14 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      * @var null|bool
      */
     protected $overrideCache = null;
-    /**
-     * @var Request
-     */
-    private $request;
-
 
     /**
      * @param Application $app
      * @param Request     $request
      */
-    public function __construct(Application $app, Request $request)
+    public function __construct(Application $app)
     {
         $this->app     = $app;
-        $this->request = $request;
         $this->flushCriterion();
         $this->makeModel();
         $this->boot();
@@ -638,11 +633,11 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
      */
     public function getCriterion()
     {
-        if (!$this->request instanceof RequestWithCriterion) {
+        if (!RequestSaver::$request instanceof RequestWithCriterion) {
             return $this->criterion;
         }
 
-        return $this->criterion->merge($this->request->criterion());
+        return $this->criterion->merge(RequestSaver::$request->criterion());
     }
 
     /**

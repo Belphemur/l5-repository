@@ -10,6 +10,7 @@ namespace Prettus\Repository\Request;
 
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Foundation\Http\FormRequest;
+use Prettus\Repository\Helpers\RequestSaver;
 
 abstract class RequestWithCriterion extends FormRequest implements \Prettus\Repository\Contracts\Request\RequestWithCriterion
 {
@@ -22,6 +23,10 @@ abstract class RequestWithCriterion extends FormRequest implements \Prettus\Repo
      */
     public function validator(ValidationFactory $factory)
     {
+        //Used to be able to get the request that just got validated to get the criterion
+        //later in the repository
+        RequestSaver::$request = $this;
+
         $rules       = $this->container->call([$this, 'rules']);
         $messages    = $this->messages();
         $allRules    = $rules;
