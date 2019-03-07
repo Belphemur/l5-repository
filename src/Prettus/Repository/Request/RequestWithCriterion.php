@@ -20,7 +20,7 @@ abstract class RequestWithCriterion extends FormRequest implements \Prettus\Repo
      *
      * @return \Illuminate\Contracts\Validation\Validator
      */
-    protected function validator(ValidationFactory $factory)
+    public function validator(ValidationFactory $factory)
     {
         $rules       = $this->container->call([$this, 'rules']);
         $messages    = $this->messages();
