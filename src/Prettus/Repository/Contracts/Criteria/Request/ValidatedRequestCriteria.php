@@ -26,4 +26,11 @@ interface ValidatedRequestCriteria extends CriteriaInterface
      * @return string[]
      */
     public function validationMessages(): array;
+
+    /**
+     * Put the code in this method to check if the criteria/request is in a correct state to apply the criteria
+     *
+     * @return bool
+     */
+    public function shouldApply(): bool;
 }

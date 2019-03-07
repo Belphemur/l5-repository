@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Prettus\Repository\Contracts\Criteria\Request\ValidatedRequestCriteria;
 use Prettus\Repository\Contracts\CriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryCriteriaInterface;
 use Prettus\Repository\Contracts\RepositoryInterface;
@@ -732,6 +733,9 @@ abstract class BaseRepository implements RepositoryInterface, RepositoryCriteria
         }
 
         foreach ($criterion as $c) {
+            if ($c instanceof ValidatedRequestCriteria && !$c->shouldApply()) {
+                continue;
+            }
             if ($c instanceof CriteriaInterface) {
                 $this->model = $c->apply($this->model->newQuery(), $this);
             }
