@@ -34,8 +34,8 @@ abstract class RequestWithCriterion extends FormRequest implements \Prettus\Repo
 
         return $factory->make(
             $this->validationData(),
-            $rules,
-            $messages,
+            $allRules,
+            $allMessages,
             $this->attributes()
         );
     }
